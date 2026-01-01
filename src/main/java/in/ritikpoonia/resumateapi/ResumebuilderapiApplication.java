@@ -1,0 +1,13 @@
+package in.ritikpoonia.resumateapi;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ResumebuilderapiApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ResumebuilderapiApplication.class, args);
+	}
+
+}
