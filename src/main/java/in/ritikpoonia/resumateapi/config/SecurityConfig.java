@@ -35,13 +35,14 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers(
                         "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/verify-email",
                                 "/api/auth/upload-image",
-                                "/api/auth/resend-verification",
-                                "/actuator/**")
+                                "/api/auth/resend-verification")
                         .permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
