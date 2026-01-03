@@ -40,9 +40,9 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/api/auth/register",
                                 "/api/auth/login",
-                                "/api/auth/verify-email",
                                 "/api/auth/upload-image",
-                                "/api/auth/resend-verification")
+                                "/api/auth/resend-verification",
+                                "/api/auth/verify-email" )
                         .permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

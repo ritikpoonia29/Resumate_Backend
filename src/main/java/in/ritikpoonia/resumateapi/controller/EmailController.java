@@ -1,10 +1,10 @@
 package in.ritikpoonia.resumateapi.controller;
 
-import in.ritikpoonia.resumateapi.service.AuthService;
-import in.ritikpoonia.resumateapi.service.EmailService;
-import jakarta.mail.MessagingException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -14,13 +14,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
+import in.ritikpoonia.resumateapi.service.EmailService;
 import static in.ritikpoonia.resumateapi.util.AppConstants.EMAIL;
 import static in.ritikpoonia.resumateapi.util.AppConstants.SEND_RESUME;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,38 +28,68 @@ public class EmailController {
 
     private final EmailService emailService;
 
-    @PostMapping(value = SEND_RESUME, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(
+            value = SEND_RESUME,
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<Map<String, Object>> sendResumeByEmail(
             @RequestPart("recipientEmail") String recipientEmail,
-            @RequestPart("subject") String subject,
-            @RequestPart("message") String message,
-            @RequestPart("pdfFile")MultipartFile pdfFile,
+            @RequestPart(value = "subject", required = false) String subject,
+            @RequestPart(value = "message", required = false) String message,
+            @RequestPart("pdfFile") MultipartFile pdfFile,
             Authentication authentication
-            ) throws IOException, MessagingException {
-        //Step 1: Validate the inputs
+    ) throws IOException {
+
         Map<String, Object> response = new HashMap<>();
-        if (Objects.isNull(recipientEmail) || Objects.isNull(pdfFile)) {
+
+        /* ------------------ Security check ------------------ */
+        if (authentication == null || !authentication.isAuthenticated()) {
+            response.put("success", false);
+            response.put("message", "Unauthorized");
+            return ResponseEntity.status(401).body(response);
+        }
+
+        /* ------------------ Validation ------------------ */
+        if (recipientEmail == null || pdfFile.isEmpty()) {
             response.put("success", false);
             response.put("message", "Missing required fields");
             return ResponseEntity.badRequest().body(response);
         }
 
-        //Step 2: Get the file data
+        /* ------------------ File handling ------------------ */
         byte[] pdfBytes = pdfFile.getBytes();
-        String originalFilename = pdfFile.getOriginalFilename();
-        String filename = Objects.nonNull(originalFilename) ? originalFilename : "resume.pdf";
+        String filename = Objects.requireNonNullElse(
+                pdfFile.getOriginalFilename(),
+                "resume.pdf"
+        );
 
-        //Step 3: Prepare the email content
-        String emailSubject = Objects.nonNull(subject) ? subject : "Resume Application";
-        String emailBody = Objects.nonNull(message) ? message : "Please find my resume attached.\n\n Best Regards";
+        /* ------------------ Email content ------------------ */
+        String emailSubject =
+                Objects.requireNonNullElse(subject, "Resume Application");
 
-        //Step 4: Call the service method
-        emailService.sendEmailWithAttachment(recipientEmail, emailSubject, emailBody, pdfBytes, filename);
+        String emailHtml =
+                """
+                <p>Hello,</p>
+                <p>%s</p>
+                <p>Please find my resume attached.</p>
+                <br/>
+                <p>Best regards,<br/><b>ResuMate</b></p>
+                """.formatted(
+                        Objects.requireNonNullElse(message, "")
+                );
 
-        //Step 5: return response
+        /* ------------------ Send email ------------------ */
+        emailService.sendEmailWithAttachment(
+                recipientEmail,
+                emailSubject,
+                emailHtml,
+                pdfBytes,
+                filename
+        );
+
+        /* ------------------ Response ------------------ */
         response.put("success", true);
-        response.put("message", "Resume send successfully to "+recipientEmail);
+        response.put("message", "Resume sent successfully to " + recipientEmail);
         return ResponseEntity.ok(response);
     }
-
 }
