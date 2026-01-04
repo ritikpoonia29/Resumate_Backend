@@ -57,10 +57,9 @@ public class AuthController {
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         log.info("Inside AuthController - verifyEmail(): {}", token);
         authService.verifyEmail(token);
-        return ResponseEntity.status(HttpStatus.FOUND).header(
-            "location",
-            homePage + "/?emailVerified=success"
-        ).build();
+        return ResponseEntity.status(HttpStatus.FOUND)
+    .header("location", homePage + "/home?emailVerified=success")
+    .build();
     }
 
     @PostMapping(UPLOAD_PROFILE)
